@@ -42,6 +42,6 @@ int lab5(int argc, char **argv);
 // Lab6
 int semaphore(int *arr_A, int *arr_B, int *arr_C, int N, int flag);
 int barrier(int *arr_A, int *arr_B, int *arr_C, int N, int flag);
-
+int lab6(int argc, char **argv);
 
 #endif //OPENMP_OPENMP_H

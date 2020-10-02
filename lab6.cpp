@@ -74,7 +74,7 @@ int barrier(int *arr_A, int *arr_B, int *arr_C, int N, int flag)
 	return (product);
 }
 
-int main(int argc, char **argv)
+int lab6(int argc, char **argv)
 {
 	int N;
 	int arr_N[] = {10, 200, 500, 1000, 50000};
@@ -93,11 +93,11 @@ int main(int argc, char **argv)
 		fill_arr(C, N);
 
 		printf("%d\t", N);
-//		semaphore(A, B, C, N, 1);
-//		semaphore(A, B, C, N, -1);
+		semaphore(A, B, C, N, 1);
+		semaphore(A, B, C, N, -1);
 
-		barrier(A, B, C, N, 1);
-		barrier(A, B, C, N, -1);
+//		barrier(A, B, C, N, 1);
+//		barrier(A, B, C, N, -1);
 		printf("\n");
 	}
 	return (0);

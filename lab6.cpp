@@ -1,7 +1,6 @@
 //
 // Created by snorcros on 10/1/20.
 //
-
 #include "openmp.h"
 
 /** Модифицировать программы, составленные в Л.Р. №№3,4,
@@ -9,6 +8,8 @@
  * */
 int semaphore(int *arr_A, int *arr_B, int *arr_C, int N, int flag)
 {
+	omp_lock_t lock; // Замок
+	omp_init_lock(&lock);
 	float product = 1;
 	float num = 0.0;
 	unsigned int start_time, end_time, search_time;
@@ -26,8 +27,9 @@ int semaphore(int *arr_A, int *arr_B, int *arr_C, int N, int flag)
 
 			if (num != 0)
 			{
-#pragma omp critical
+				omp_set_lock (&lock); // устанавливаем замок, остальные потоки блочатся
 				product *= num;
+				omp_unset_lock (&lock); // освобождаем
 			}
 		}
 	}
@@ -60,10 +62,11 @@ int barrier(int *arr_A, int *arr_B, int *arr_C, int N, int flag)
 
 			if (num != 0)
 			{
-#pragma omp critical
+				#pragma omp critical
 				product *= num;
 			}
 		}
+#pragma omp barrier
 	}
 	end_time = clock(); // конечное время
 	search_time = end_time - start_time; // искомое время
@@ -90,8 +93,11 @@ int main(int argc, char **argv)
 		fill_arr(C, N);
 
 		printf("%d\t", N);
-		distributed(A, B, C, N, 1);
-		distributed(A, B, C, N, -1);
+//		semaphore(A, B, C, N, 1);
+//		semaphore(A, B, C, N, -1);
+
+		barrier(A, B, C, N, 1);
+		barrier(A, B, C, N, -1);
 		printf("\n");
 	}
 	return (0);

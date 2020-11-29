@@ -36,7 +36,7 @@ void print_num(int *num, int len)
 	printf("\n");
 }
 
-int *multiply(int *num1, int len_num1, int *num2, int len_num2, int ProcRank, int ProcNum)
+int *multiply(int *num1, int len_num1, int *num2, int len_num2, int ProcRank, int ProcNum, MPI_Comm comm)
 {
 	int *result;
 	int len_res = len_num1 + len_num2;
@@ -84,7 +84,7 @@ int *multiply(int *num1, int len_num1, int *num2, int len_num2, int ProcRank, in
 
 		// отправляем результаты умножения главному процессу
 		MPI_Gather(result, (len_num1 + len_num2), MPI_INT, res_all_proc, len_res, MPI_INT,
-				   0, MPI_COMM_WORLD);
+				   0, comm);
 
 		printf("Proc%d send %d (first num in res)\n", ProcRank, result[len_res]);
 		fflush(0);
@@ -121,18 +121,19 @@ int *multiply(int *num1, int len_num1, int *num2, int len_num2, int ProcRank, in
 			}
 		}
 
-		free(res_all_proc);
+		if (ProcRank == 0)
+			free(res_all_proc);
 		return result;
 	}
 	else
 		return NULL;
 }
 
-int lab6(int *num1, int *num2, int N, int ProcNum, int ProcRank)
+int lab6(int *num1, int *num2, int N, int ProcNum, int ProcRank, MPI_Comm comm)
 {
 	int *res_mul;
 
-	res_mul = multiply(num1, N, num2, N, ProcRank, ProcNum);
+	res_mul = multiply(num1, N, num2, N, ProcRank, ProcNum, comm);
 	if (ProcRank == 0)
 	{
 		if (res_mul != NULL)
@@ -148,6 +149,7 @@ int lab6(int *num1, int *num2, int N, int ProcNum, int ProcRank)
 	return (0);
 }
 
+// run with /usr/bin/mpiexec -np 4
 int main(int argc, char* argv[])
 {
 	if (argc != 2)
@@ -155,7 +157,7 @@ int main(int argc, char* argv[])
 
 	int ProcNum, ProcRank;
 //	int N = atoi(argv[1]); // Длина целых чисел
-	int N = 5; // Длина целых чисел
+	int N = 4; // Длина целых чисел
 	int *num1 = (int *)malloc(sizeof(int) * N);
 	int *num2 = (int *)malloc(sizeof(int) * N);
 
@@ -174,12 +176,33 @@ int main(int argc, char* argv[])
 		print_num(num2, N);
 	}
 
-	lab6(num1, num2, N, ProcNum, ProcRank);
+	MPI_Comm grid_comm;
+	int my_grid_rank;
+	int coordinates[2];
+	MPI_Comm old_comm;
+	int ndims, reorder, periods[2], dim_size[2];
+
+	old_comm = MPI_COMM_WORLD;
+	ndims = 2; /* 2D matrix/grid */
+	dim_size[0] = 2; /* rows */
+	dim_size[1] = 2; /* columns */
+	periods[0] = 1; /* row periodic (each column forms a ring) */
+	periods[1] = 0; /* columns non-periodic */
+	reorder = 1; /* allows processes reordered for efficiency */
+
+	// создаём декартову топологию
+	MPI_Cart_create(old_comm, ndims, dim_size, periods, reorder, &grid_comm);
+	// Получаем ранг процесса
+	MPI_Comm_rank(grid_comm, &my_grid_rank);
+	// Получаем координаты процесса
+	MPI_Cart_coords(grid_comm, my_grid_rank, 2, coordinates);
+	printf("Process rank %i has coordinates %i %i\n", my_grid_rank, coordinates[0], coordinates[1]);
+	fflush(0); // сброс буфера
+
+	lab6(num1, num2, N, ProcNum, my_grid_rank, grid_comm);
 
 	MPI_Finalize();
 	free(num1);
 	free(num2);
 	return (0);
 }
-
-
